@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sharp Eyes — Ten-Level English Observation Challenge</title>
+<style>
+:root{--bg:#e9eef5;--card:#fff;--ink:#0f1b33;--mute:#5a6783;--accent:#e4572e;--ok:#1f8a5b;--bad:#c0392b;--line:#c9d3e3}
+@media (prefers-color-scheme:dark){:root{--bg:#0f1b33;--card:#182646;--ink:#eef2f9;--mute:#9fb0cf;--line:#2c3d63}}
+*{box-sizing:border-box}
+body{margin:0;min-height:100vh;background:var(--bg);color:var(--ink);font-family:"Trebuchet MS",Verdana,sans-serif;display:flex;justify-content:center;align-items:flex-start;padding:24px 16px}
+main{width:100%;max-width:560px}
+h1{font-family:Palatino,"Palatino Linotype",Georgia,serif;font-size:2.4rem;margin:8px 0 4px}
+.sub{color:var(--mute);margin:0 0 24px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px}
+label{display:block;font-size:.9rem;margin:14px 0 6px}
+input{width:100%;padding:12px;border:1px solid var(--line);border-radius:8px;font-size:1rem;background:transparent;color:var(--ink)}
+button{font:inherit;cursor:pointer}
+.btn{background:var(--accent);color:#fff;border:0;border-radius:8px;padding:12px 20px;font-weight:700;margin-top:18px;width:100%}
+.btn:focus-visible,input:focus-visible,.opt:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.hint{color:var(--mute);font-size:.9rem;margin-top:14px}
+.err{color:var(--bad);min-height:1.2em;margin:10px 0 0;font-size:.9rem}
+.top{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;font-size:.95rem;color:var(--mute)}
+.bar{height:8px;background:var(--line);border-radius:4px;overflow:hidden;margin-bottom:16px}
+.bar i{display:block;height:100%;background:var(--accent);width:100%}
+.scene{font-size:1.1rem;line-height:1.9;min-height:200px}
+.scene p{margin:0 0 6px;opacity:0;transform:translateY(6px);transition:.4s}
+.scene p.on{opacity:1;transform:none}
+.opt{display:block;width:100%;text-align:left;background:transparent;color:var(--ink);border:2px solid var(--line);border-radius:10px;padding:12px;margin-top:10px}
+.opt:hover:not(:disabled){border-color:var(--accent)}
+.opt.ok{border-color:var(--ok);background:rgba(31,138,91,.15)}
+.opt.bad{border-color:var(--bad);background:rgba(192,57,43,.15)}
+h2{font-family:Palatino,Georgia,serif;margin:0 0 10px}
+.big{font-size:3rem;font-family:Palatino,Georgia,serif;margin:8px 0}
+.hidden{display:none}
+@media (prefers-reduced-motion:reduce){.scene p{transition:none}}
+</style>
+</head>
+<body>
+<main>
+  <h1>Sharp Eyes</h1>
+  <p class="sub">English Observation Challenge</p>
+
+  <section id="login" class="card">
+    <label for="u">Username</label>
+    <input id="u" autocomplete="username">
+    <label for="p">Password</label>
+    <input id="p" type="password" autocomplete="current-password">
+    <p class="err" id="err" role="alert"></p>
+    <button class="btn" id="loginBtn">Login</button>
+    <p class="hint">Demo login: <b>student</b> / <b>english123</b></p>
+  </section>
+
+  <section id="watch" class="card hidden">
+    <div class="top"><span id="lvl"></span><span id="time"></span></div>
+    <div class="bar"><i id="bar"></i></div>
+    <h2 id="title"></h2>
+    <div class="scene" id="scene"></div>
+  </section>
+
+  <section id="quiz" class="card hidden">
+    <div class="top"><span id="lvl2"></span><span id="score"></span></div>
+    <h2 id="q"></h2>
+    <div id="opts"></div>
+    <button class="btn hidden" id="next">Next level</button>
+  </section>
+
+  <section id="end" class="card hidden" style="text-align:center">
+    <h2>Challenge complete</h2>
+    <div class="big" id="final"></div>
+    <p id="msg"></p>
+    <button class="btn" id="again">Play again</button>
+  </section>
+</main>
+
+<script>
+// Each level: title, scene lines (shown one by one), question, options, index of correct option
+const LEVELS = [
+ ["The Bus Stop",["A woman in a red coat checks her watch.","A boy drops his blue backpack on the bench.","An old man feeds two pigeons.","The number 12 bus arrives and a girl runs to catch it."],"What did the boy do?",["Fed the pigeons","Dropped his backpack","Checked his watch"],1],
+ ["The Bakery",["A baker pulls a tray of croissants from the oven.","A customer points at a chocolate cake.","The cashier hands over a small paper bag.","A child presses her nose against the glass."],"Who pressed her nose against the glass?",["A child","The cashier","The baker"],0],
+ ["The Park",["Two joggers run past the fountain.","A man in a green hat reads a newspaper.","A dog chases a yellow ball.","A girl on a bicycle rings her bell."],"What colour was the ball?",["Green","Red","Yellow"],2],
+ ["The Train Station",["A guard blows a whistle.","A tourist studies a large map.","A woman drags a heavy suitcase.","The 9:15 train to Leeds is delayed."],"Which train was delayed?",["The 9:15 to Leeds","The 9:50 to York","The 12 to Bath"],0],
+ ["The Market",["A seller stacks oranges into a pyramid.","A woman weighs tomatoes on a scale.","A boy tastes a slice of apple.","Someone buys a bunch of sunflowers."],"What did the seller stack?",["Apples","Oranges","Tomatoes"],1],
+ ["The Café",["A waiter carries three cups of coffee.","A student types on a silver laptop.","Two friends laugh at a joke.","A man in a grey suit stirs his tea."],"What was the student doing?",["Typing on a laptop","Stirring tea","Laughing"],0],
+ ["The Crossing",["The light turns red and the cars stop.","A cyclist waits beside a taxi.","A mother holds her son's hand.","A police officer waves at a delivery driver."],"Who held the son's hand?",["The officer","His mother","The cyclist"],1],
+ ["The Library",["A librarian stamps a pile of books.","A teenager whispers into her phone.","An old man searches the history shelf.","A sign says: Silence, please."],"Where did the old man search?",["The history shelf","The desk","The window"],0],
+ ["The Rainy Street",["Rain falls on a row of umbrellas.","A man jumps over a puddle.","A shop owner closes his shutters.","A girl in yellow boots splashes through the water."],"What colour were the girl's boots?",["Red","Yellow","Black"],1],
+ ["The Night Square",["Street musicians play violin and drums.","A couple dances near the clock tower.","A vendor sells hot chestnuts.","The clock strikes ten."],"What time did the clock strike?",["Nine","Ten","Eleven"],1]
+];
+const WATCH_SECONDS = 12;
+const $ = id => document.getElementById(id);
+let idx = 0, score = 0, timer = null;
+
+function show(id){ ["login","watch","quiz","end"].forEach(s => $(s).classList.toggle("hidden", s !== id)); }
+
+function login(){
+  if ($("u").value.trim() === "student" && $("p").value === "english123"){
+    $("err").textContent = ""; idx = 0; score = 0; startLevel();
+  } else {
+    $("err").textContent = "Wrong username or password. Use student / english123.";
+  }
+}
+
+function startLevel(){
+  const [title, lines] = LEVELS[idx];
+  show("watch");
+  $("lvl").textContent = "Level " + (idx + 1) + " of " + LEVELS.length;
+  $("title").textContent = title;
+  const scene = $("scene"); scene.innerHTML = "";
+  lines.forEach((t, i) => {
+    const p = document.createElement("p"); p.textContent = t; scene.appendChild(p);
+    setTimeout(() => p.classList.add("on"), 400 + i * (WATCH_SECONDS * 1000 / (lines.length + 1)) * 0.8);
+  });
+  let left = WATCH_SECONDS;
+  $("time").textContent = left + "s"; $("bar").style.width = "100%";
+  clearInterval(timer);
+  timer = setInterval(() => {
+    left--; $("time").textContent = left + "s"; $("bar").style.width = (left / WATCH_SECONDS * 100) + "%";
+    if (left <= 0){ clearInterval(timer); startQuiz(); }
+  }, 1000);
+}
+
+function startQuiz(){
+  const [, , q, opts, ans] = LEVELS[idx];
+  show("quiz");
+  $("lvl2").textContent = "Level " + (idx + 1) + " of " + LEVELS.length;
+  $("score").textContent = "Score: " + score;
+  $("q").textContent = q;
+  $("next").classList.add("hidden");
+  const box = $("opts"); box.innerHTML = "";
+  opts.forEach((o, i) => {
+    const b = document.createElement("button");
+    b.className = "opt"; b.textContent = o;
+    b.onclick = () => answer(i, ans);
+    box.appendChild(b);
+  });
+}
+
+function answer(i, ans){
+  const btns = [...document.querySelectorAll(".opt")];
+  btns.forEach((b, j) => { b.disabled = true; if (j === ans) b.classList.add("ok"); });
+  if (i === ans) score++; else btns[i].classList.add("bad");
+  $("score").textContent = "Score: " + score;
+  $("next").textContent = idx === LEVELS.length - 1 ? "See result" : "Next level";
+  $("next").classList.remove("hidden");
+}
+
+function next(){
+  idx++;
+  if (idx >= LEVELS.length){
+    show("end");
+    $("final").textContent = score + " / " + LEVELS.length;
+    $("msg").textContent = score >= 8 ? "Excellent. You notice everything." : score >= 5 ? "Good work. Keep practising." : "Keep going. Watch each scene closely.";
+  } else startLevel();
+}
+
+$("loginBtn").onclick = login;
+$("p").addEventListener("keydown", e => { if (e.key === "Enter") login(); });
+$("next").onclick = next;
+$("again").onclick = () => { idx = 0; score = 0; startLevel(); };
+</script>
+</body>
+</html>
